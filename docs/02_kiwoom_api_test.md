@@ -72,13 +72,29 @@ defmodule MagicSplitMac.Kiwoom do
     Req.post!(url, json: body).body["token"]
   end
 
-  @doc "주식 현재가를 조회합니다."
-  def get_price(stock_code) do
-    base_url = System.get_env("KIWOOM_BASE_URL")
-    token = get_token()
-    url = "#{base_url}/v1/quotes/current/#{stock_code}"
-    
-    Req.get!(url, headers: [{"Authorization", "Bearer #{token}"}]).body
+  @doc "[ka10001] 주식기본정보를 조회합니다."
+  def get_stock_info(stock_code) do
+    case get_token() do
+      {:ok, token} ->
+        config = Application.get_env(:magic_split_mac, :kiwoom)
+        base_url = config[:base_url]
+        url = "#{base_url}/api/dostk/stkinfo"
+
+        body = %{"stk_cd" => stock_code}
+
+        headers = %{
+          "Content-Type" => "application/json;charset=UTF-8",
+          "authorization" => "Bearer #{token}",
+          "api-id" => "ka10001",
+          "cont-yn" => "N",
+          "next-key" => ""
+        }
+
+        Req.post!(url, json: body, headers: headers).body
+
+      error ->
+        error
+    end
   end
 end
 ```

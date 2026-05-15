@@ -33,16 +33,35 @@ defmodule MagicSplitMac.Kiwoom do
   end
 
   @doc """
-  주식 현재가를 조회합니다.
+  [ka10001] 주식기본정보를 조회합니다.
   """
-  def get_price(stock_code) do
+  def get_stock_info(stock_code) do
     case get_token() do
       {:ok, token} ->
-        base_url = System.get_env("KIWOOM_BASE_URL")
-        url = "#{base_url}/v1/quotes/current/#{stock_code}"
-        headers = [{"Authorization", "Bearer #{token}"}]
+        config = Application.get_env(:magic_split_mac, :kiwoom)
+        base_url = config[:base_url]
+        url = "#{base_url}/api/dostk/stkinfo"
 
-        Req.get!(url, headers: headers).body
+        body = %{"stk_cd" => stock_code}
+
+        headers = %{
+          "Content-Type" => "application/json;charset=UTF-8",
+          "authorization" => "Bearer #{token}",
+          "api-id" => "ka10001",
+          "cont-yn" => "N",
+          "next-key" => ""
+        }
+
+        case Req.post(url, json: body, headers: headers) do
+          {:ok, %{status: 200, body: body}} ->
+            {:ok, body}
+
+          {:ok, %{body: body}} ->
+            {:error, body}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
 
       error ->
         error
