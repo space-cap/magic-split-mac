@@ -18,6 +18,7 @@ defmodule MagicSplitMacWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    live "/hello", HelloLive
   end
 
   # Other scopes may use custom stacks.
