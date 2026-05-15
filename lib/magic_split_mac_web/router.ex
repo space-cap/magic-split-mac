@@ -19,6 +19,7 @@ defmodule MagicSplitMacWeb.Router do
 
     get "/", PageController, :home
     live "/hello", HelloLive
+    get "/lee", LeeController, :home
   end
 
   # Other scopes may use custom stacks.
