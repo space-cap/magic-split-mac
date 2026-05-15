@@ -48,7 +48,7 @@ KIWOOM_BASE_URL="https://api.kiwoom.com"
     }
 
     response = Req.post!(url, json: body)
-    IO.inspect(response.body)
+    IO.inspect(response.body["token"]) # access_token이 아니라 "token"입니다!
     ```
 
 ---
@@ -69,7 +69,7 @@ defmodule MagicSplitMac.Kiwoom do
       secretkey: System.get_env("KIWOOM_APP_SECRET")
     }
 
-    Req.post!(url, json: body).body["access_token"]
+    Req.post!(url, json: body).body["token"]
   end
 
   @doc "주식 현재가를 조회합니다."
