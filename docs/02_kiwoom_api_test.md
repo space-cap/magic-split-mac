@@ -40,11 +40,11 @@ KIWOOM_BASE_URL="https://api.kiwoom.com"
     ```elixir
     # Req 라이브러리를 사용한 토큰 요청 예시
     base_url = System.get_env("KIWOOM_BASE_URL")
-    url = "#{base_url}/v1/oauth2/token"
+    url = "#{base_url}/oauth2/token"  # 파이썬 샘플 기준 경로
     body = %{
       grant_type: "client_credentials",
       appkey: System.get_env("KIWOOM_APP_KEY"),
-      appsecret: System.get_env("KIWOOM_APP_SECRET")
+      secretkey: System.get_env("KIWOOM_APP_SECRET") # appsecret -> secretkey로 변경
     }
 
     response = Req.post!(url, json: body)
@@ -62,9 +62,14 @@ defmodule MagicSplitMac.Kiwoom do
   @doc "접근 토큰을 가져옵니다."
   def get_token do
     base_url = System.get_env("KIWOOM_BASE_URL")
-    url = "#{base_url}/v1/oauth2/token"
-    # 실제 구현 시에는 만료 시간을 체크하여 재사용하는 로직이 필요합니다.
-    Req.post!(url, json: %{...}).body["access_token"]
+    url = "#{base_url}/oauth2/token"
+    body = %{
+      grant_type: "client_credentials",
+      appkey: System.get_env("KIWOOM_APP_KEY"),
+      secretkey: System.get_env("KIWOOM_APP_SECRET")
+    }
+
+    Req.post!(url, json: body).body["access_token"]
   end
 
   @doc "주식 현재가를 조회합니다."
