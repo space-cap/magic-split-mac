@@ -17,7 +17,9 @@ defmodule MagicSplitMac.Application do
       # Start a worker by calling: MagicSplitMac.Worker.start_link(arg)
       # {MagicSplitMac.Worker, arg},
       # Start to serve requests, typically the last entry
-      MagicSplitMacWeb.Endpoint
+      MagicSplitMacWeb.Endpoint,
+      # 키움 토큰 관리 서버 추가
+      MagicSplitMac.Kiwoom.TokenServer
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
