@@ -7,13 +7,14 @@ defmodule MagicSplitMac.Kiwoom do
   [au10001] 키움 API 서버로부터 접근 토큰(Access Token)을 발급받습니다.
   """
   def get_token do
-    base_url = System.get_env("KIWOOM_BASE_URL")
+    config = Application.get_env(:magic_split_mac, :kiwoom)
+    base_url = config[:base_url]
     url = "#{base_url}/oauth2/token"
 
     body = %{
       "grant_type" => "client_credentials",
-      "appkey" => System.get_env("KIWOOM_APP_KEY"),
-      "secretkey" => System.get_env("KIWOOM_APP_SECRET")
+      "appkey" => config[:app_key],
+      "secretkey" => config[:app_secret]
     }
 
     # Content-Type을 키움 규격에 맞춰 설정합니다.

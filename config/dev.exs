@@ -87,3 +87,9 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# 키움 API 설정 (개발 환경)
+config :magic_split_mac, :kiwoom,
+  base_url: System.get_env("KIWOOM_BASE_URL", "https://api.kiwoom.com"),
+  app_key: System.get_env("KIWOOM_APP_KEY"),
+  app_secret: System.get_env("KIWOOM_APP_SECRET")
