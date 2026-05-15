@@ -21,6 +21,7 @@
 ```bash
 KIWOOM_APP_KEY="여러분의_앱_키"
 KIWOOM_APP_SECRET="여러분의_앱_시크릿"
+KIWOOM_BASE_URL="https://api.kiwoom.com"
 ```
 
 ---
@@ -38,7 +39,8 @@ KIWOOM_APP_SECRET="여러분의_앱_시크릿"
     아래 코드를 IEx 창에 복사해서 붙여넣어 보세요 (실제 키가 설정되어 있어야 합니다).
     ```elixir
     # Req 라이브러리를 사용한 토큰 요청 예시
-    url = "https://openapi.kiwoom.com/v1/oauth2/token"
+    base_url = System.get_env("KIWOOM_BASE_URL")
+    url = "#{base_url}/v1/oauth2/token"
     body = %{
       grant_type: "client_credentials",
       appkey: System.get_env("KIWOOM_APP_KEY"),
@@ -59,15 +61,17 @@ KIWOOM_APP_SECRET="여러분의_앱_시크릿"
 defmodule MagicSplitMac.Kiwoom do
   @doc "접근 토큰을 가져옵니다."
   def get_token do
-    url = "https://openapi.kiwoom.com/v1/oauth2/token"
+    base_url = System.get_env("KIWOOM_BASE_URL")
+    url = "#{base_url}/v1/oauth2/token"
     # 실제 구현 시에는 만료 시간을 체크하여 재사용하는 로직이 필요합니다.
     Req.post!(url, json: %{...}).body["access_token"]
   end
 
   @doc "주식 현재가를 조회합니다."
   def get_price(stock_code) do
+    base_url = System.get_env("KIWOOM_BASE_URL")
     token = get_token()
-    url = "https://openapi.kiwoom.com/v1/quotes/current/#{stock_code}"
+    url = "#{base_url}/v1/quotes/current/#{stock_code}"
     
     Req.get!(url, headers: [{"Authorization", "Bearer #{token}"}]).body
   end
