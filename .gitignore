@@ -46,6 +46,7 @@ npm-debug.log
 !.env.example
 
 # Phoenix secret config
+config/dev.secret.exs
 config/prod.secret.exs
 config/releases.exs
 

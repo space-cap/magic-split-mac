@@ -87,3 +87,6 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# 시크릿 키 설정 파일 로드 (이 파일은 .gitignore에 등록되어 있어야 합니다)
+import_config "dev.secret.exs"
