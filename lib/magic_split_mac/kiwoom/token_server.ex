@@ -14,10 +14,21 @@ defmodule MagicSplitMac.Kiwoom.TokenServer do
     GenServer.call(@name, :get_token)
   end
 
+  @doc "메모리에 저장된 토큰을 즉시 삭제합니다."
+  def clear_token do
+    GenServer.cast(@name, :clear_token)
+  end
+
   # 서버 콜백
   @impl true
   def init(state) do
     {:ok, state}
+  end
+
+  @impl true
+  def handle_cast(:clear_token, _state) do
+    Logger.info("메모리에서 토큰을 성공적으로 삭제했습니다.")
+    {:noreply, %{token: nil, expires_at: nil}}
   end
 
   @impl true

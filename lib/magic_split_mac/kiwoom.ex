@@ -11,6 +11,41 @@ defmodule MagicSplitMac.Kiwoom do
   end
 
   @doc """
+  [au10002] 접근 토큰을 폐기합니다.
+  """
+  def revoke_token do
+    case get_token() do
+      {:ok, token} ->
+        config = Application.get_env(:magic_split_mac, :kiwoom)
+        url = "#{config[:base_url]}/oauth2/revoke"
+
+        body = %{
+          "appkey" => config[:app_key],
+          "secretkey" => config[:app_secret],
+          "token" => token
+        }
+
+        headers = %{"Content-Type" => "application/json;charset=UTF-8"}
+
+        case Req.post(url, json: body, headers: headers) do
+          {:ok, %{status: 200, body: %{"return_code" => 0} = res}} ->
+            # 서버 폐기 성공 시 우리 메모리 금고에서도 지웁니다.
+            MagicSplitMac.Kiwoom.TokenServer.clear_token()
+            {:ok, res}
+
+          {:ok, %{body: body}} ->
+            {:error, body}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
   [ka10001] 주식기본정보를 조회합니다.
   """
   def get_stock_info(stock_code) do
