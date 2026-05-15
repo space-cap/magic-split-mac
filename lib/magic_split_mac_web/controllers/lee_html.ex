@@ -1,4 +1,4 @@
-defmodule MagicSplitMacWeb.PageHTML do
+defmodule MagicSplitMacWeb.LeeHTML do
   @moduledoc """
   This module contains pages rendered by PageController.
 
