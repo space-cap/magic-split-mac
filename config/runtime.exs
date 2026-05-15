@@ -1,5 +1,16 @@
 import Config
 
+# .env 파일을 자동으로 읽어들입니다. (개발 환경에서 편리하게 사용)
+if config_env() != :prod do
+  Dotenvy.source!([".env"])
+
+  # .env 로드 후에 키움 API 설정을 읽어야 nil이 되지 않습니다!
+  config :magic_split_mac, :kiwoom,
+    base_url: System.get_env("KIWOOM_BASE_URL", "https://api.kiwoom.com"),
+    app_key: System.get_env("KIWOOM_APP_KEY"),
+    app_secret: System.get_env("KIWOOM_APP_SECRET")
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
