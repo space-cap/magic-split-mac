@@ -19,18 +19,22 @@ defmodule MagicSplitMacWeb.DashboardLive do
      |> assign(:total_asset, 25840000)
      |> assign(:daily_profit, 1245000)
      |> assign(:daily_rate, 4.8)
+     |> assign(:tick_toggle, true)
      |> stream(:stocks, stocks)}
   end
 
   @impl true
   def handle_info(:tick, socket) do
     # 가격 변동 시뮬레이션
-    updated_stocks = Enum.map(socket.assigns.streams.stocks, fn {id, stock} ->
+    updated_stocks = Enum.map(socket.assigns.streams.stocks, fn {_id, stock} ->
       change = (:rand.uniform(200) - 100)
       %{stock | price: stock.price + change}
     end)
 
-    {:noreply, stream(socket, :stocks, updated_stocks, reset: true)}
+    {:noreply, 
+     socket 
+     |> assign(:tick_toggle, !socket.assigns.tick_toggle)
+     |> stream(:stocks, updated_stocks, reset: true)}
   end
 
   @impl true
@@ -40,9 +44,16 @@ defmodule MagicSplitMacWeb.DashboardLive do
       <%!-- 왼쪽 사이드바 --%>
       <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
         <div class="p-6">
-          <h1 class="text-xl font-bold text-indigo-400 flex items-center gap-2">
-            <span class="w-3 h-3 bg-indigo-500 rounded-full animate-pulse"></span>
-            MagicSplit <span class="text-xs font-light text-slate-500">Mac</span>
+          <h1 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+            <div class="relative flex h-3 w-3">
+              <span class={[
+                "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                @tick_toggle && "bg-emerald-400",
+                !@tick_toggle && "bg-emerald-500"
+              ]}></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </div>
+            MagicSplit <span class="text-xs font-light text-slate-500 uppercase tracking-tighter">Mac</span>
           </h1>
         </div>
 
