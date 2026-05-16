@@ -1,0 +1,207 @@
+defmodule MagicSplitMacWeb.DashboardLive do
+  use MagicSplitMacWeb, :live_view
+
+  @impl true
+  def mount(_params, _session, socket) do
+    if connected?(socket), do: :timer.send_interval(1000, self(), :tick)
+
+    stocks = [
+      %{id: "005930", name: "삼성전자", price: 72500, change: 1.2, qty: 100, avg_price: 71000, level: 2},
+      %{id: "000660", name: "SK하이닉스", price: 115000, change: -0.8, qty: 50, avg_price: 116500, level: 3},
+      %{id: "035420", name: "NAVER", price: 195000, change: 0.5, qty: 30, avg_price: 192000, level: 1},
+      %{id: "005380", name: "현대차", price: 205000, change: -1.5, qty: 20, avg_price: 210000, level: 4},
+      %{id: "035720", name: "카카오", price: 48500, change: 2.1, qty: 200, avg_price: 47000, level: 1}
+    ]
+
+    {:ok, 
+     socket 
+     |> assign(:page_title, "실시간 잔고 - MagicSplit")
+     |> assign(:total_asset, 25840000)
+     |> assign(:daily_profit, 1245000)
+     |> assign(:daily_rate, 4.8)
+     |> stream(:stocks, stocks)}
+  end
+
+  @impl true
+  def handle_info(:tick, socket) do
+    # 가격 변동 시뮬레이션
+    updated_stocks = Enum.map(socket.assigns.streams.stocks, fn {id, stock} ->
+      change = (:rand.uniform(200) - 100)
+      %{stock | price: stock.price + change}
+    end)
+
+    {:noreply, stream(socket, :stocks, updated_stocks, reset: true)}
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="flex h-screen bg-slate-950 text-slate-200 overflow-hidden font-sans">
+      <%!-- 왼쪽 사이드바 --%>
+      <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
+        <div class="p-6">
+          <h1 class="text-xl font-bold text-indigo-400 flex items-center gap-2">
+            <span class="w-3 h-3 bg-indigo-500 rounded-full animate-pulse"></span>
+            MagicSplit <span class="text-xs font-light text-slate-500">Mac</span>
+          </h1>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-2">
+          <a href="#" class="flex items-center gap-3 px-4 py-3 bg-indigo-600/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+            <.icon name="hero-presentation-chart-line" class="w-5 h-5" />
+            <span class="font-medium">실시간 잔고</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 rounded-xl transition-all">
+            <.icon name="hero-document-text" class="w-5 h-5" />
+            <span>매매 일지</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 rounded-xl transition-all">
+            <.icon name="hero-cog-6-tooth" class="w-5 h-5" />
+            <span>환경 설정</span>
+          </a>
+        </nav>
+
+        <div class="p-6 border-t border-slate-800 bg-slate-900/50">
+          <div class="text-xs text-slate-500 mb-1">총 자산</div>
+          <div class="text-lg font-bold">₩{Number.to_delimited(@total_asset)}</div>
+          <div class="flex items-center gap-2 mt-2">
+            <span class="text-xs px-2 py-0.5 bg-rose-500/10 text-rose-500 rounded-full">
+              +{Number.to_delimited(@daily_profit)} ({(@daily_rate)}%)
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      <%!-- 메인 콘텐츠 --%>
+      <main class="flex-1 flex flex-col overflow-hidden">
+        <%!-- 상단 바 --%>
+        <header class="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-950/50 backdrop-blur-xl">
+          <div class="flex items-center gap-4">
+            <h2 class="text-lg font-semibold">실시간 잔고 현황</h2>
+            <div class="h-4 w-[1px] bg-slate-800"></div>
+            <div class="text-sm text-slate-500">5개 종목 감시 중</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <button class="p-2 hover:bg-slate-800 rounded-lg text-slate-400">
+              <.icon name="hero-magnifying-glass" class="w-5 h-5" />
+            </button>
+            <button class="p-2 hover:bg-slate-800 rounded-lg text-slate-400">
+              <.icon name="hero-bell" class="w-5 h-5" />
+            </button>
+            <div class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-xs font-bold">MS</div>
+          </div>
+        </header>
+
+        <%!-- 메인 그리드 테이블 --%>
+        <div class="flex-1 overflow-auto p-8">
+          <div class="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-800/50 text-slate-400 text-xs uppercase tracking-wider">
+                  <th class="px-6 py-4 font-semibold">종목명</th>
+                  <th class="px-6 py-4 font-semibold text-right">현재가</th>
+                  <th class="px-6 py-4 font-semibold text-right">수익률</th>
+                  <th class="px-6 py-4 font-semibold text-right">보유/평단</th>
+                  <th class="px-6 py-4 font-semibold">분할 매수 상태 (차수)</th>
+                </tr>
+              </thead>
+              <tbody id="stock-list" phx-update="stream">
+                <tr :for={{id, stock} <- @streams.stocks} id={id} class="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group">
+                  <td class="px-6 py-5">
+                    <div class="font-bold text-slate-100">{stock.name}</div>
+                    <div class="text-xs text-slate-500 font-mono">{stock.id}</div>
+                  </td>
+                  <td class={[
+                    "px-6 py-5 text-right font-mono font-medium",
+                    stock.change > 0 && "text-rose-500",
+                    stock.change < 0 && "text-blue-500"
+                  ]}>
+                    {Number.to_delimited(stock.price)}
+                  </td>
+                  <td class={[
+                    "px-6 py-5 text-right font-bold",
+                    stock.change > 0 && "text-rose-500",
+                    stock.change < 0 && "text-blue-500"
+                  ]}>
+                    {if stock.change > 0, do: "+", else: ""}{stock.change}%
+                  </td>
+                  <td class="px-6 py-5 text-right">
+                    <div class="text-slate-200">{stock.qty}주</div>
+                    <div class="text-xs text-slate-500 font-mono">@{Number.to_delimited(stock.avg_price)}</div>
+                  </td>
+                  <td class="px-6 py-5">
+                    <div class="flex gap-1.5">
+                      <%= for i <- 1..7 do %>
+                        <div class={[
+                          "w-2.5 h-2.5 rounded-full border border-slate-700",
+                          i <= stock.level && "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)] border-indigo-400",
+                          i > stock.level && "bg-slate-800"
+                        ]}></div>
+                      <% end %>
+                      <span class="ml-2 text-xs text-slate-500">{stock.level}차</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      <%!-- 오른쪽 주문 패널 --%>
+      <aside class="w-80 bg-slate-900 border-l border-slate-800 p-6 flex flex-col gap-6">
+        <section>
+          <h3 class="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-widest">빠른 주문</h3>
+          <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700 space-y-4">
+            <div>
+              <label class="text-xs text-slate-500 block mb-1">매수 수량</label>
+              <input type="number" class="w-full bg-slate-950 border-slate-700 rounded-lg text-right p-2 focus:ring-1 focus:ring-indigo-500 outline-none" value="10">
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 block mb-1">매수 가격</label>
+              <input type="text" class="w-full bg-slate-950 border-slate-700 rounded-lg text-right p-2 focus:ring-1 focus:ring-indigo-500 outline-none" value="72,500">
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-2">
+              <button class="bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-rose-900/20 active:scale-95 transition-all">
+                매수
+              </button>
+              <button class="bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-900/20 active:scale-95 transition-all">
+                매도
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="flex-1">
+          <h3 class="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-widest">분할 매수 전략</h3>
+          <div class="space-y-3">
+            <button class="w-full p-4 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-2xl text-left transition-all group">
+              <div class="font-bold text-slate-200 group-hover:text-indigo-400">안전형 (보수적)</div>
+              <div class="text-xs text-slate-500">-2% 하락 시 추가 매수</div>
+            </button>
+            <button class="w-full p-4 bg-indigo-600/10 border border-indigo-500/30 rounded-2xl text-left">
+              <div class="font-bold text-indigo-400">균등형 (표준)</div>
+              <div class="text-xs text-indigo-400/70">-1.5% 하락 시 추가 매수</div>
+            </button>
+            <button class="w-full p-4 bg-slate-800 hover:bg-slate-750 border border-slate-700 rounded-2xl text-left transition-all group">
+              <div class="font-bold text-slate-200 group-hover:text-indigo-400">적극형 (공격적)</div>
+              <div class="text-xs text-slate-500">-1% 하락 시 추가 매수</div>
+            </button>
+          </div>
+        </section>
+      </aside>
+    </div>
+    """
+  end
+end
+
+defmodule Number do
+  def to_delimited(number) do
+    number
+    |> Integer.to_charlist()
+    |> Enum.reverse()
+    |> Enum.chunk_every(3)
+    |> Enum.join(",")
+    |> String.reverse()
+  end
+end

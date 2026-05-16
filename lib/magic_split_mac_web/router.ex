@@ -19,6 +19,7 @@ defmodule MagicSplitMacWeb.Router do
 
     get "/", PageController, :home
     live "/hello", HelloLive
+    live "/dashboard", DashboardLive
     get "/lee", LeeController, :home
   end
 
