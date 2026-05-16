@@ -1,17 +1,17 @@
 defmodule MagicSplitMacWeb.DashboardLive do
   use MagicSplitMacWeb, :live_view
 
+  @stocks [
+    %{id: "005930", name: "삼성전자", price: 72500, change: 1.2, qty: 100, avg_price: 71000, level: 2},
+    %{id: "000660", name: "SK하이닉스", price: 115000, change: -0.8, qty: 50, avg_price: 116500, level: 3},
+    %{id: "035420", name: "NAVER", price: 195000, change: 0.5, qty: 30, avg_price: 192000, level: 1},
+    %{id: "005380", name: "현대차", price: 205000, change: -1.5, qty: 20, avg_price: 210000, level: 4},
+    %{id: "035720", name: "카카오", price: 48500, change: 2.1, qty: 200, avg_price: 47000, level: 1}
+  ]
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: :timer.send_interval(1000, self(), :tick)
-
-    stocks = [
-      %{id: "005930", name: "삼성전자", price: 72500, change: 1.2, qty: 100, avg_price: 71000, level: 2},
-      %{id: "000660", name: "SK하이닉스", price: 115000, change: -0.8, qty: 50, avg_price: 116500, level: 3},
-      %{id: "035420", name: "NAVER", price: 195000, change: 0.5, qty: 30, avg_price: 192000, level: 1},
-      %{id: "005380", name: "현대차", price: 205000, change: -1.5, qty: 20, avg_price: 210000, level: 4},
-      %{id: "035720", name: "카카오", price: 48500, change: 2.1, qty: 200, avg_price: 47000, level: 1}
-    ]
 
     {:ok, 
      socket 
@@ -20,7 +20,8 @@ defmodule MagicSplitMacWeb.DashboardLive do
      |> assign(:daily_profit, 1245000)
      |> assign(:daily_rate, 4.8)
      |> assign(:tick_toggle, true)
-     |> stream(:stocks, stocks)}
+     |> assign(:selected_stock, nil)
+     |> stream(:stocks, @stocks)}
   end
 
   @impl true
@@ -35,6 +36,25 @@ defmodule MagicSplitMacWeb.DashboardLive do
      socket 
      |> assign(:tick_toggle, !socket.assigns.tick_toggle)
      |> stream(:stocks, updated_stocks, reset: true)}
+  end
+
+  @impl true
+  def handle_event("select_stock", %{"id" => id}, socket) do
+    # 모듈 속성(@stocks)에서 종목을 직접 찾습니다.
+    stock = Enum.find(@stocks, fn s -> s.id == id end)
+    
+    if stock do
+      require Logger
+      Logger.info("종목 선택됨: #{stock.name} (#{id})")
+      {:noreply, assign(socket, :selected_stock, stock)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("close_modal", _, socket) do
+    {:noreply, assign(socket, :selected_stock, nil)}
   end
 
   @impl true
@@ -117,7 +137,9 @@ defmodule MagicSplitMacWeb.DashboardLive do
                 </tr>
               </thead>
               <tbody id="stock-list" phx-update="stream">
-                <tr :for={{id, stock} <- @streams.stocks} id={id} class="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group">
+                <tr :for={{id, stock} <- @streams.stocks} id={id} 
+                    phx-click="select_stock" phx-value-id={stock.id}
+                    class="border-b border-slate-800/50 hover:bg-indigo-500/10 transition-colors group cursor-pointer">
                   <td class="px-6 py-5">
                     <div class="font-bold text-slate-100">{stock.name}</div>
                     <div class="text-xs text-slate-500 font-mono">{stock.id}</div>
@@ -201,6 +223,106 @@ defmodule MagicSplitMacWeb.DashboardLive do
           </div>
         </section>
       </aside>
+
+      <%!-- 상세 설정 모달 (selected_stock이 있을 때만 노출) --%>
+      <%= if @selected_stock do %>
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="bg-slate-900 border border-slate-800 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+            <%!-- 모달 헤더 --%>
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
+              <div>
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                  <span class="text-indigo-400">{@selected_stock.name}</span>
+                  <span class="text-sm font-mono text-slate-500">{@selected_stock.id}</span>
+                  <span class="ml-3 px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-xs rounded-full border border-emerald-500/20">자동매매 작동 중</span>
+                </h3>
+              </div>
+              <button phx-click="close_modal" class="p-2 hover:bg-slate-700 rounded-full transition-colors text-slate-400">
+                <.icon name="hero-x-mark" class="w-6 h-6" />
+              </button>
+            </div>
+
+            <%!-- 모달 본문 (스크롤 가능) --%>
+            <div class="flex-1 overflow-auto p-8 grid grid-cols-2 gap-8">
+              <%!-- 왼쪽: 자동매수 설정 --%>
+              <div class="space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <h4 class="font-bold text-rose-500 flex items-center gap-2">
+                    <.icon name="hero-arrow-down-circle" class="w-5 h-5" />
+                    자동매수 (분할매수)
+                  </h4>
+                  <span class="text-xs text-slate-500">최대 관리차수: 7차</span>
+                </div>
+                
+                <div class="space-y-3">
+                  <%= for i <- 1..7 do %>
+                    <div class="flex items-center gap-3 bg-slate-800/30 p-3 rounded-xl border border-slate-800/50">
+                      <span class="w-8 text-xs font-bold text-slate-500">{i}차</span>
+                      <div class="flex-1 flex items-center gap-2">
+                        <span class="text-xs text-slate-400">하락시</span>
+                        <input type="text" class="w-16 bg-slate-950 border-slate-700 rounded p-1 text-right text-sm outline-none focus:border-rose-500" value="-1.5">
+                        <span class="text-xs text-slate-400">%</span>
+                      </div>
+                      <div class="flex-1 flex items-center gap-2">
+                        <input type="text" class="w-24 bg-slate-950 border-slate-700 rounded p-1 text-right text-sm outline-none focus:border-rose-500" value="1,000,000">
+                        <span class="text-xs text-slate-400">원</span>
+                      </div>
+                      <span class={["text-[10px] px-1.5 py-0.5 rounded", if(i <= @selected_stock.level, do: "bg-rose-500/20 text-rose-500", else: "bg-slate-700 text-slate-500")]}>
+                        {if i <= @selected_stock.level, do: "완료", else: "대기"}
+                      </span>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+
+              <%!-- 오른쪽: 자동매도 설정 --%>
+              <div class="space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <h4 class="font-bold text-blue-500 flex items-center gap-2">
+                    <.icon name="hero-arrow-up-circle" class="w-5 h-5" />
+                    자동매도 (이익청산)
+                  </h4>
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-slate-500">주문방식:</span>
+                    <select class="bg-slate-800 border-none rounded text-xs p-1 outline-none">
+                      <option>시장가</option>
+                      <option>지정가</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="space-y-3">
+                  <%= for i <- 1..7 do %>
+                    <div class="flex items-center gap-3 bg-slate-800/30 p-3 rounded-xl border border-slate-800/50">
+                      <span class="w-8 text-xs font-bold text-slate-500">{i}차</span>
+                      <div class="flex-1 flex items-center gap-2">
+                        <span class="text-xs text-slate-400">수익시</span>
+                        <input type="text" class="w-16 bg-slate-950 border-slate-700 rounded p-1 text-right text-sm outline-none focus:border-blue-500" value="1.1">
+                        <span class="text-xs text-slate-400">%</span>
+                      </div>
+                      <div class="flex-1 text-xs text-slate-500 text-center italic">
+                        → {i}차 이익청산
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
+            <%!-- 모달 푸터 --%>
+            <div class="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-between items-center">
+              <div class="flex items-center gap-2 text-xs text-slate-400">
+                <input type="checkbox" class="rounded border-slate-700 bg-slate-950 text-indigo-500" id="booster" checked>
+                <label for="booster">수익부스터 활성화 (익절 후 재진입 감시)</label>
+              </div>
+              <div class="flex gap-3">
+                <button phx-click="close_modal" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all">취소</button>
+                <button phx-click="close_modal" class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-900/40 transition-all">설정 저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
     </div>
     """
   end
